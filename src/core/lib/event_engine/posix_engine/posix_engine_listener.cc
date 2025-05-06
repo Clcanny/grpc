@@ -195,7 +195,7 @@ void PosixEngineListenerImpl::AsyncConnectionAcceptor::NotifyOnAccept(
                    << (listener_addr_uri.ok() ? *listener_addr_uri
                                               : "<unknown>")
                    << ":" << socket_.port;
-        close(fd);
+        grpc_socket_factory_close(fd);
         handle_->NotifyOnRead(notify_on_accept_);
         return;
       }

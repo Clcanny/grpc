@@ -115,7 +115,7 @@ class PollEventHandle : public EventHandle {
   void CloseFd() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mu_) {
     if (!released_ && !closed_) {
       closed_ = true;
-      close(fd_);
+      grpc_socket_factory_close(fd_);
     }
   }
   bool IsPollhup() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mu_) { return pollhup_; }
@@ -327,7 +327,7 @@ void PollEventHandle::OrphanHandle(PosixEngineClosure* on_done, int* release_fd,
     }
     // signal read/write closed to OS so that future operations fail.
     if (!released_) {
-      shutdown(fd_, SHUT_RDWR);
+      grpc_socket_factory_shutdown(fd_, SHUT_RDWR);
     }
     if (!IsWatched()) {
       CloseFd();

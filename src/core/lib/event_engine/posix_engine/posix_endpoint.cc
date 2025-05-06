@@ -847,7 +847,7 @@ bool PosixEndpointImpl::WriteWithTimestamps(struct msghdr* msg,
                                             int additional_flags) {
   if (!socket_ts_enabled_) {
     uint32_t opt = kTimestampingSocketOptions;
-    if (setsockopt(fd_, SOL_SOCKET, SO_TIMESTAMPING, static_cast<void*>(&opt),
+    if (grpc_socket_factory_setsockopt(fd_, SOL_SOCKET, SO_TIMESTAMPING, static_cast<void*>(&opt),
                    sizeof(opt)) != 0) {
       return false;
     }
@@ -1305,7 +1305,7 @@ PosixEndpointImpl::PosixEndpointImpl(EventHandle* handle,
                  << "value.";
     } else {
       const int enable = 1;
-      if (setsockopt(fd_, SOL_SOCKET, SO_ZEROCOPY, &enable, sizeof(enable)) !=
+      if (grpc_socket_factory_setsockopt(fd_, SOL_SOCKET, SO_ZEROCOPY, &enable, sizeof(enable)) !=
           0) {
         zerocopy_enabled = false;
         LOG(ERROR) << "Failed to set zerocopy options on the socket.";
@@ -1324,7 +1324,7 @@ PosixEndpointImpl::PosixEndpointImpl(EventHandle* handle,
       options.tcp_tx_zerocopy_send_bytes_threshold);
 #ifdef GRPC_HAVE_TCP_INQ
   int one = 1;
-  if (setsockopt(fd_, SOL_TCP, TCP_INQ, &one, sizeof(one)) == 0) {
+  if (grpc_socket_factory_setsockopt(fd_, SOL_TCP, TCP_INQ, &one, sizeof(one)) == 0) {
     inq_capable_ = true;
   } else {
     VLOG(2) << "cannot set inq fd=" << fd_ << " errno=" << errno;

@@ -246,8 +246,6 @@
 #define GRPC_ARG_RING_HASH_LB_RING_SIZE_CAP "grpc.lb.ring_hash.ring_size_cap"
 /** The grpc_socket_mutator instance that set the socket options. A pointer. */
 #define GRPC_ARG_SOCKET_MUTATOR "grpc.socket_mutator"
-/** The grpc_socket_factory instance to create and bind sockets. A pointer. */
-#define GRPC_ARG_SOCKET_FACTORY "grpc.socket_factory"
 /** The maximum amount of memory used by trace events per channel trace node.
  * Once the maximum is reached, subsequent events will evict the oldest events
  * from the buffer. The unit for this knob is bytes. Setting it to zero causes

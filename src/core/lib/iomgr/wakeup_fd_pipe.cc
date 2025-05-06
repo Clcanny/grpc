@@ -44,14 +44,14 @@ static grpc_error_handle pipe_init(grpc_wakeup_fd* fd_info) {
   grpc_error_handle err;
   err = grpc_set_socket_nonblocking(pipefd[0], 1);
   if (!err.ok()) {
-    close(pipefd[0]);
-    close(pipefd[1]);
+    grpc_socket_factory_close(pipefd[0]);
+    grpc_socket_factory_close(pipefd[1]);
     return err;
   }
   err = grpc_set_socket_nonblocking(pipefd[1], 1);
   if (!err.ok()) {
-    close(pipefd[0]);
-    close(pipefd[1]);
+    grpc_socket_factory_close(pipefd[0]);
+    grpc_socket_factory_close(pipefd[1]);
     return err;
   }
   fd_info->read_fd = pipefd[0];
@@ -64,7 +64,7 @@ static grpc_error_handle pipe_consume(grpc_wakeup_fd* fd_info) {
   ssize_t r;
 
   for (;;) {
-    r = read(fd_info->read_fd, buf, sizeof(buf));
+    r = grpc_socket_factory_read(fd_info->read_fd, buf, sizeof(buf));
     if (r > 0) continue;
     if (r == 0) return absl::OkStatus();
     switch (errno) {
@@ -86,8 +86,8 @@ static grpc_error_handle pipe_wakeup(grpc_wakeup_fd* fd_info) {
 }
 
 static void pipe_destroy(grpc_wakeup_fd* fd_info) {
-  if (fd_info->read_fd != 0) close(fd_info->read_fd);
-  if (fd_info->write_fd != 0) close(fd_info->write_fd);
+  if (fd_info->read_fd != 0) grpc_socket_factory_close(fd_info->read_fd);
+  if (fd_info->write_fd != 0) grpc_socket_factory_close(fd_info->write_fd);
 }
 
 static int pipe_check_availability(void) {

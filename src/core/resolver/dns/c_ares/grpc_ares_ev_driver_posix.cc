@@ -79,7 +79,7 @@ class GrpcPolledFdPosix final : public GrpcPolledFd {
   bool IsFdStillReadableLocked()
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(&grpc_ares_request::mu) override {
     size_t bytes_available = 0;
-    return ioctl(grpc_fd_wrapped_fd(fd_), FIONREAD, &bytes_available) == 0 &&
+    return grpc_socket_factory_ioctl(grpc_fd_wrapped_fd(fd_), FIONREAD, &bytes_available) == 0 &&
            bytes_available > 0;
   }
 
@@ -106,7 +106,7 @@ class GrpcPolledFdFactoryPosix final : public GrpcPolledFdFactory {
  public:
   ~GrpcPolledFdFactoryPosix() override {
     for (auto& fd : owned_fds_) {
-      close(fd);
+      grpc_socket_factory_close(fd);
     }
   }
 
@@ -127,7 +127,7 @@ class GrpcPolledFdFactoryPosix final : public GrpcPolledFdFactory {
   /// Overridden socket API for c-ares
   static ares_socket_t Socket(int af, int type, int protocol,
                               void* /*user_data*/) {
-    return socket(af, type, protocol);
+    return grpc_socket_factory_socket(af, type, protocol);
   }
 
   /// Overridden connect API for c-ares
@@ -155,7 +155,7 @@ class GrpcPolledFdFactoryPosix final : public GrpcPolledFdFactory {
         static_cast<GrpcPolledFdFactoryPosix*>(user_data);
     if (self->owned_fds_.find(as) == self->owned_fds_.end()) {
       // c-ares owns this fd, grpc has never seen it
-      return close(as);
+      return grpc_socket_factory_close(as);
     }
     return 0;
   }

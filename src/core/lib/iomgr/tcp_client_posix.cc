@@ -131,7 +131,7 @@ static grpc_error_handle prepare_socket(
 
 error:
   if (fd >= 0) {
-    close(fd);
+    grpc_socket_factory_close(fd);
   }
 done:
   return err;
@@ -206,7 +206,7 @@ static void on_writable(void* acp, grpc_error_handle error) {
 
   do {
     so_error_size = sizeof(so_error);
-    err = getsockopt(grpc_fd_wrapped_fd(fd), SOL_SOCKET, SO_ERROR, &so_error,
+    err = grpc_socket_factory_getsockopt(grpc_fd_wrapped_fd(fd), SOL_SOCKET, SO_ERROR, &so_error,
                      &so_error_size);
   } while (err < 0 && errno == EINTR);
   if (err < 0) {

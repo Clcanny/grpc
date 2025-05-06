@@ -879,7 +879,7 @@ static void update_rcvlowat(grpc_tcp* tcp)
   if (tcp->set_rcvlowat == remaining) {
     return;
   }
-  if (setsockopt(tcp->fd, SOL_SOCKET, SO_RCVLOWAT, &remaining,
+  if (grpc_socket_factory_setsockopt(tcp->fd, SOL_SOCKET, SO_RCVLOWAT, &remaining,
                  sizeof(remaining)) != 0) {
     LOG(ERROR) << "Cannot set SO_RCVLOWAT on fd=" << tcp->fd
                << " err=" << grpc_core::StrError(errno);
@@ -1248,7 +1248,7 @@ static bool tcp_write_with_timestamps(grpc_tcp* tcp, struct msghdr* msg,
                                       int additional_flags) {
   if (!tcp->socket_ts_enabled) {
     uint32_t opt = grpc_core::kTimestampingSocketOptions;
-    if (setsockopt(tcp->fd, SOL_SOCKET, SO_TIMESTAMPING,
+    if (grpc_socket_factory_setsockopt(tcp->fd, SOL_SOCKET, SO_TIMESTAMPING,
                    static_cast<void*>(&opt), sizeof(opt)) != 0) {
       GRPC_TRACE_LOG(tcp, ERROR)
           << "Failed to set timestamping options on the socket.";
@@ -1983,7 +1983,7 @@ grpc_endpoint* grpc_tcp_create(grpc_fd* em_fd,
 #ifdef GRPC_LINUX_ERRQUEUE
     const int enable = 1;
     auto err =
-        setsockopt(tcp->fd, SOL_SOCKET, SO_ZEROCOPY, &enable, sizeof(enable));
+        grpc_socket_factory_setsockopt(tcp->fd, SOL_SOCKET, SO_ZEROCOPY, &enable, sizeof(enable));
     if (err == 0) {
       tcp->tcp_zerocopy_send_ctx.set_enabled(true);
     } else {
@@ -2013,7 +2013,7 @@ grpc_endpoint* grpc_tcp_create(grpc_fd* em_fd,
   tcp->inq = 1;
 #ifdef GRPC_HAVE_TCP_INQ
   int one = 1;
-  if (setsockopt(tcp->fd, SOL_TCP, TCP_INQ, &one, sizeof(one)) == 0) {
+  if (grpc_socket_factory_setsockopt(tcp->fd, SOL_TCP, TCP_INQ, &one, sizeof(one)) == 0) {
     tcp->inq_capable = true;
   } else {
     VLOG(2) << "cannot set inq fd=" << tcp->fd << " errno=" << errno;

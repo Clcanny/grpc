@@ -230,7 +230,7 @@ bool InitEpoll1PollerLinux() {
       gpr_mu_init(&fork_fd_list_mu);
     }
   }
-  close(fd);
+  grpc_socket_factory_close(fd);
   return true;
 }
 
@@ -260,8 +260,8 @@ void Epoll1EventHandle::OrphanHandle(PosixEngineClosure* on_done,
     }
     *release_fd = fd_;
   } else {
-    shutdown(fd_, SHUT_RDWR);
-    close(fd_);
+    grpc_socket_factory_shutdown(fd_, SHUT_RDWR);
+    grpc_socket_factory_close(fd_);
   }
 
   {
@@ -331,7 +331,7 @@ void Epoll1Poller::Close() {
   if (closed_) return;
 
   if (g_epoll_set_.epfd >= 0) {
-    close(g_epoll_set_.epfd);
+    grpc_socket_factory_close(g_epoll_set_.epfd);
     g_epoll_set_.epfd = -1;
   }
 

@@ -28,41 +28,50 @@
 /// The virtual table of grpc_socket_factory
 struct grpc_socket_factory_vtable {
   /// Replacement for socket(2)
-  int (*socket)(grpc_socket_factory* factory, int domain, int type,
-                int protocol);
+  int (*socket)(int domain, int type, int protocol);
+  /// Replacement for getsockopt(2)
+  int (*getsockopt)(int sockfd, int level, int optname,
+                    void *optval, socklen_t *optlen);
+  /// Replacement for setsockopt(2)
+  int (*setsockopt)(int sockfd, int level, int optname,
+                    const void *optval, socklen_t optlen);
+  /// Replacement for ioctl(2)
+  int (*ioctl)(int fd, unsigned long op, ...);
+  /// Replacement for close(2)
+  int (*close)(int fd);
+  /// Replacement for read(2)
+  ssize_t (*read)(int fd, void* buf, size_t count);
   /// Replacement for bind(2)
-  int (*bind)(grpc_socket_factory* factory, int sockfd,
-              const grpc_resolved_address* addr);
-  /// Compare socket factory \a a and \a b
-  int (*compare)(grpc_socket_factory* a, grpc_socket_factory* b);
-  /// Destroys the socket factory instance
-  void (*destroy)(grpc_socket_factory* factory);
+  int (*bind)(int sockfd, const struct sockaddr* addr, socklen_t len);
+  /// Replacement for shutdown(2)
+  int (*shutdown)(int sockfd, int how);
 };
-/// The Socket Factory interface allows changes on socket options
-struct grpc_socket_factory {
-  const grpc_socket_factory_vtable* vtable;
-  gpr_refcount refcount;
-};
-
-/// called by concrete implementations to initialize the base struct
-void grpc_socket_factory_init(grpc_socket_factory* factory,
-                              const grpc_socket_factory_vtable* vtable);
-
-/// Wrap \a factory as a grpc_arg
-grpc_arg grpc_socket_factory_to_arg(grpc_socket_factory* factory);
 
 /// Perform the equivalent of a socket(2) operation using \a factory
-int grpc_socket_factory_socket(grpc_socket_factory* factory, int domain,
-                               int type, int protocol);
+int grpc_socket_factory_socket(int domain, int type, int protocol);
+
+/// Perform the equivalent of a getsockopt(2) operation using \a factory
+int grpc_socket_factory_getsockopt(int sockfd, int level, int optname,
+                                   void *optval, socklen_t *optlen);
+
+/// Perform the equivalent of a setsockopt(2) operation using \a factory
+int grpc_socket_factory_setsockopt(int sockfd, int level, int optname,
+                                   const void *optval, socklen_t optlen);
+
+/// Perform the equivalent of a ioctl(2) operation using \a factory
+int grpc_socket_factory_ioctl(int fd, unsigned long op, ...);
+
+/// Perform the equivalent of a close(2) operation using \a factory
+int grpc_socket_factory_close(int fd);
+
+/// Perform the equivalent of a read(2) operation using \a factory
+ssize_t grpc_socket_factory_read(int fd, void* buf, size_t count);
 
 /// Perform the equivalent of a bind(2) operation using \a factory
-int grpc_socket_factory_bind(grpc_socket_factory* factory, int sockfd,
-                             const grpc_resolved_address* addr);
+int grpc_socket_factory_bind(int sockfd, const grpc_resolved_address* addr);
+int grpc_socket_factory_bind(int sockfd, const struct sockaddr* addr, socklen_t len);
 
-/// Compare if \a a and \a b are the same factory or have same settings
-int grpc_socket_factory_compare(grpc_socket_factory* a, grpc_socket_factory* b);
-
-grpc_socket_factory* grpc_socket_factory_ref(grpc_socket_factory* factory);
-void grpc_socket_factory_unref(grpc_socket_factory* factory);
+/// Perform the equivalent of a shutdown(2) operation using \a factory
+int grpc_socket_factory_shutdown(int sockfd, int how);
 
 #endif  // GRPC_SRC_CORE_LIB_IOMGR_SOCKET_FACTORY_POSIX_H

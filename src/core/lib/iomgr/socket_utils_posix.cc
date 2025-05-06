@@ -149,7 +149,7 @@ int grpc_accept4(int sockfd, grpc_resolved_address* resolved_addr, int nonblock,
   return fd;
 
 close_and_error:
-  close(fd);
+  grpc_socket_factory_close(fd);
   return -1;
 }
 
