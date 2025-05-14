@@ -71,26 +71,27 @@ static grpc_error_handle get_unused_port(int* port) {
   if (dsmode == GRPC_DSMODE_IPV4) {
     grpc_sockaddr_make_wildcard4(0, &wild);
   }
-  if (bind(fd, reinterpret_cast<const grpc_sockaddr*>(wild.addr), wild.len) !=
+  if (grpc_socket_factory_bind(
+          fd, reinterpret_cast<const grpc_sockaddr*>(wild.addr), wild.len) !=
       0) {
     err = GRPC_OS_ERROR(errno, "bind");
-    close(fd);
+    grpc_socket_factory_close(fd);
     return err;
   }
   if (getsockname(fd, reinterpret_cast<grpc_sockaddr*>(wild.addr), &wild.len) !=
       0) {
     err = GRPC_OS_ERROR(errno, "getsockname");
-    close(fd);
+    grpc_socket_factory_close(fd);
     return err;
   }
-  close(fd);
+  grpc_socket_factory_close(fd);
   *port = grpc_sockaddr_get_port(&wild);
   return *port <= 0 ? GRPC_ERROR_CREATE("Bad port") : absl::OkStatus();
 }
 
 static bool grpc_is_ipv4_available() {
-  const int fd = socket(AF_INET, SOCK_DGRAM, 0);
-  if (fd >= 0) close(fd);
+  const int fd = grpc_socket_factory_socket(AF_INET, SOCK_DGRAM, 0);
+  if (fd >= 0) grpc_socket_factory_close(fd);
   return fd >= 0;
 }
 

@@ -37,7 +37,8 @@ namespace grpc_event_engine::experimental {
 int GetSocketTcpInfo(struct tcp_info* info, int fd) {
   memset(info, 0, sizeof(*info));
   info->length = offsetof(tcp_info, length);
-  return getsockopt(fd, IPPROTO_TCP, TCP_INFO, info, &(info->length));
+  return grpc_socket_factory_getsockopt(fd, IPPROTO_TCP, TCP_INFO, info,
+                                        &(info->length));
 }
 #endif
 

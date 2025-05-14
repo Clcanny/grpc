@@ -133,7 +133,7 @@ class GrpcPolledFdFactoryPosix final : public GrpcPolledFdFactory {
   /// Overridden connect API for c-ares
   static int Connect(ares_socket_t as, const struct sockaddr* target,
                      ares_socklen_t target_len, void* /*user_data*/) {
-    return connect(as, target, target_len);
+    return grpc_socket_factory_connect(as, target, target_len);
   }
 
   /// Overridden writev API for c-ares

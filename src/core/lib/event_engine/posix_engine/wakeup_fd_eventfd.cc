@@ -76,7 +76,7 @@ absl::Status EventFdWakeupFd::Wakeup() {
 
 EventFdWakeupFd::~EventFdWakeupFd() {
   if (ReadFd() != 0) {
-    close(ReadFd());
+    grpc_socket_factory_close(ReadFd());
   }
 }
 

@@ -166,7 +166,8 @@ grpc_error_handle grpc_tcp_server_add_addr(grpc_tcp_server* s,
     // Set dsmode value
     if (family == AF_INET6) {
       const int off = 0;
-      if (setsockopt(fd, 0, IPV6_V6ONLY, &off, sizeof(off)) == 0) {
+      if (grpc_socket_factory_setsockopt(fd, 0, IPV6_V6ONLY, &off,
+                                         sizeof(off)) == 0) {
         *dsmode = GRPC_DSMODE_DUALSTACK;
       } else if (!grpc_sockaddr_is_v4mapped(addr, nullptr)) {
         *dsmode = GRPC_DSMODE_IPV6;
@@ -244,14 +245,14 @@ grpc_error_handle grpc_tcp_server_prepare_socket(
 
   // Only bind/listen if fd has not been already preallocated
   if (grpc_tcp_server_pre_allocated_fd(s) != fd) {
-    if (bind(fd,
-             reinterpret_cast<grpc_sockaddr*>(const_cast<char*>(addr->addr)),
-             addr->len) < 0) {
+    if (grpc_socket_factory_bind(
+            fd, reinterpret_cast<grpc_sockaddr*>(const_cast<char*>(addr->addr)),
+            addr->len) < 0) {
       err = GRPC_OS_ERROR(errno, "bind");
       goto error;
     }
 
-    if (listen(fd, get_max_accept_queue_size()) < 0) {
+    if (grpc_socket_factory_listen(fd, get_max_accept_queue_size()) < 0) {
       err = GRPC_OS_ERROR(errno, "listen");
       goto error;
     }
@@ -271,7 +272,7 @@ grpc_error_handle grpc_tcp_server_prepare_socket(
 error:
   CHECK(!err.ok());
   if (fd >= 0) {
-    close(fd);
+    grpc_socket_factory_close(fd);
   }
   return GRPC_ERROR_CREATE_REFERENCING("Unable to configure socket", &err, 1);
 }

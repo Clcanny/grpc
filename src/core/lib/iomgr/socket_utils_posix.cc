@@ -132,24 +132,27 @@ PosixTcpOptions TcpOptionsFromEndpointConfig(
 int grpc_accept4(int sockfd, grpc_resolved_address* resolved_addr, int nonblock,
                  int cloexec) {
   int fd, flags;
-  fd = accept(sockfd, reinterpret_cast<grpc_sockaddr*>(resolved_addr->addr),
-              &resolved_addr->len);
+  fd = grpc_socket_factory_accept(
+      sockfd, reinterpret_cast<grpc_sockaddr*>(resolved_addr->addr),
+      &resolved_addr->len);
   if (fd >= 0) {
     if (nonblock) {
-      flags = fcntl(fd, F_GETFL, 0);
+      flags = grpc_socket_factory_fcntl(fd, F_GETFL, 0);
       if (flags < 0) goto close_and_error;
-      if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) != 0) goto close_and_error;
+      if (grpc_socket_factory_fcntl(fd, F_SETFL, flags | O_NONBLOCK) != 0)
+        goto close_and_error;
     }
     if (cloexec) {
-      flags = fcntl(fd, F_GETFD, 0);
+      flags = grpc_socket_factory_fcntl(fd, F_GETFD, 0);
       if (flags < 0) goto close_and_error;
-      if (fcntl(fd, F_SETFD, flags | FD_CLOEXEC) != 0) goto close_and_error;
+      if (grpc_socket_factory_fcntl(fd, F_SETFD, flags | FD_CLOEXEC) != 0)
+        goto close_and_error;
     }
   }
   return fd;
 
 close_and_error:
-  close(fd);
+  grpc_socket_factory_close(fd);
   return -1;
 }
 

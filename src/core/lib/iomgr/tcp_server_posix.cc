@@ -161,11 +161,12 @@ static grpc_error_handle CreateEventEngineListener(
                   reinterpret_cast<
                       grpc_event_engine::experimental::PosixEndpoint*>(ep.get())
                       ->GetWrappedFd();
-              if (getpeername(fd, reinterpret_cast<struct sockaddr*>(addr.addr),
-                              &(addr.len)) < 0) {
+              if (grpc_socket_factory_getpeername(
+                      fd, reinterpret_cast<struct sockaddr*>(addr.addr),
+                      &(addr.len)) < 0) {
                 LOG(ERROR) << "Failed getpeername: "
                            << grpc_core::StrError(errno);
-                close(fd);
+                grpc_socket_factory_close(fd);
                 return;
               }
               (void)grpc_set_socket_no_sigpipe_if_possible(fd);
@@ -421,7 +422,7 @@ static void on_read(void* arg, grpc_error_handle err) {
             << "Dropped >= " << dropped_connections_count
             << " new connection attempts due to high memory pressure";
       }
-      close(fd);
+      grpc_socket_factory_close(fd);
       continue;
     }
 
@@ -430,15 +431,16 @@ static void on_read(void* arg, grpc_error_handle err) {
     if (grpc_is_unix_socket(&addr)) {
       memset(&addr, 0, sizeof(addr));
       addr.len = static_cast<socklen_t>(sizeof(struct sockaddr_storage));
-      if (getpeername(fd, reinterpret_cast<struct sockaddr*>(addr.addr),
-                      &(addr.len)) < 0) {
+      if (grpc_socket_factory_getpeername(
+              fd, reinterpret_cast<struct sockaddr*>(addr.addr), &(addr.len)) <
+          0) {
         auto listener_addr_uri = grpc_sockaddr_to_uri(&sp->addr);
         LOG(ERROR) << "Failed getpeername: " << grpc_core::StrError(errno)
                    << ". Dropping the connection, and continuing to listen on "
                    << (listener_addr_uri.ok() ? *listener_addr_uri
                                               : "<unknown>")
                    << ":" << sp->port;
-        close(fd);
+        grpc_socket_factory_close(fd);
         continue;
       }
     }
@@ -900,10 +902,11 @@ class ExternalConnectionHandler : public grpc_core::TcpServerFdHandler {
     addr.len = static_cast<socklen_t>(sizeof(struct sockaddr_storage));
     grpc_core::ExecCtx exec_ctx;
 
-    if (getpeername(fd, reinterpret_cast<struct sockaddr*>(addr.addr),
-                    &(addr.len)) < 0) {
+    if (grpc_socket_factory_getpeername(
+            fd, reinterpret_cast<struct sockaddr*>(addr.addr), &(addr.len)) <
+        0) {
       LOG(ERROR) << "Failed getpeername: " << grpc_core::StrError(errno);
-      close(fd);
+      grpc_socket_factory_close(fd);
       return;
     }
     (void)grpc_set_socket_no_sigpipe_if_possible(fd);

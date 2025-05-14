@@ -70,9 +70,6 @@ typedef struct grpc_call grpc_call;
 /** The Socket Mutator interface allows changes on socket options */
 typedef struct grpc_socket_mutator grpc_socket_mutator;
 
-/** The Socket Factory interface creates and binds sockets */
-typedef struct grpc_socket_factory grpc_socket_factory;
-
 /** Type specifier for grpc_arg */
 typedef enum {
   GRPC_ARG_STRING,

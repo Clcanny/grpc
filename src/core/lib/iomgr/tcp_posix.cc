@@ -879,8 +879,8 @@ static void update_rcvlowat(grpc_tcp* tcp)
   if (tcp->set_rcvlowat == remaining) {
     return;
   }
-  if (setsockopt(tcp->fd, SOL_SOCKET, SO_RCVLOWAT, &remaining,
-                 sizeof(remaining)) != 0) {
+  if (grpc_socket_factory_setsockopt(tcp->fd, SOL_SOCKET, SO_RCVLOWAT,
+                                     &remaining, sizeof(remaining)) != 0) {
     LOG(ERROR) << "Cannot set SO_RCVLOWAT on fd=" << tcp->fd
                << " err=" << grpc_core::StrError(errno);
     return;
@@ -941,7 +941,7 @@ static bool tcp_do_read(grpc_tcp* tcp, grpc_error_handle* error)
 
     do {
       grpc_core::global_stats().IncrementSyscallRead();
-      read_bytes = recvmsg(tcp->fd, &msg, 0);
+      read_bytes = grpc_socket_factory_recvmsg(tcp->fd, &msg, 0);
     } while (read_bytes < 0 && errno == EINTR);
 
     if (read_bytes < 0 && errno == EAGAIN) {
@@ -1187,7 +1187,8 @@ ssize_t tcp_send(int fd, const struct msghdr* msg, int* saved_errno,
   do {
     // TODO(klempner): Cork if this is a partial write
     grpc_core::global_stats().IncrementSyscallWrite();
-    sent_length = sendmsg(fd, msg, SENDMSG_FLAGS | additional_flags);
+    sent_length =
+        grpc_socket_factory_sendmsg(fd, msg, SENDMSG_FLAGS | additional_flags);
   } while (sent_length < 0 && (*saved_errno = errno) == EINTR);
   return sent_length;
 }
@@ -1248,8 +1249,9 @@ static bool tcp_write_with_timestamps(grpc_tcp* tcp, struct msghdr* msg,
                                       int additional_flags) {
   if (!tcp->socket_ts_enabled) {
     uint32_t opt = grpc_core::kTimestampingSocketOptions;
-    if (setsockopt(tcp->fd, SOL_SOCKET, SO_TIMESTAMPING,
-                   static_cast<void*>(&opt), sizeof(opt)) != 0) {
+    if (grpc_socket_factory_setsockopt(tcp->fd, SOL_SOCKET, SO_TIMESTAMPING,
+                                       static_cast<void*>(&opt),
+                                       sizeof(opt)) != 0) {
       GRPC_TRACE_LOG(tcp, ERROR)
           << "Failed to set timestamping options on the socket.";
       return false;
@@ -1400,7 +1402,7 @@ static bool process_errors(grpc_tcp* tcp) {
   while (true) {
     msg.msg_controllen = sizeof(aligned_buf.rbuf);
     do {
-      r = recvmsg(tcp->fd, &msg, MSG_ERRQUEUE);
+      r = grpc_socket_factory_recvmsg(tcp->fd, &msg, MSG_ERRQUEUE);
       saved_errno = errno;
     } while (r < 0 && saved_errno == EINTR);
 
@@ -1982,8 +1984,8 @@ grpc_endpoint* grpc_tcp_create(grpc_fd* em_fd,
       !tcp->tcp_zerocopy_send_ctx.memory_limited()) {
 #ifdef GRPC_LINUX_ERRQUEUE
     const int enable = 1;
-    auto err =
-        setsockopt(tcp->fd, SOL_SOCKET, SO_ZEROCOPY, &enable, sizeof(enable));
+    auto err = grpc_socket_factory_setsockopt(tcp->fd, SOL_SOCKET, SO_ZEROCOPY,
+                                              &enable, sizeof(enable));
     if (err == 0) {
       tcp->tcp_zerocopy_send_ctx.set_enabled(true);
     } else {
@@ -2013,7 +2015,8 @@ grpc_endpoint* grpc_tcp_create(grpc_fd* em_fd,
   tcp->inq = 1;
 #ifdef GRPC_HAVE_TCP_INQ
   int one = 1;
-  if (setsockopt(tcp->fd, SOL_TCP, TCP_INQ, &one, sizeof(one)) == 0) {
+  if (grpc_socket_factory_setsockopt(tcp->fd, SOL_TCP, TCP_INQ, &one,
+                                     sizeof(one)) == 0) {
     tcp->inq_capable = true;
   } else {
     VLOG(2) << "cannot set inq fd=" << tcp->fd << " errno=" << errno;

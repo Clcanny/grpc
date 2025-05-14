@@ -131,7 +131,7 @@ static grpc_error_handle prepare_socket(
 
 error:
   if (fd >= 0) {
-    close(fd);
+    grpc_socket_factory_close(fd);
   }
 done:
   return err;
@@ -206,8 +206,8 @@ static void on_writable(void* acp, grpc_error_handle error) {
 
   do {
     so_error_size = sizeof(so_error);
-    err = getsockopt(grpc_fd_wrapped_fd(fd), SOL_SOCKET, SO_ERROR, &so_error,
-                     &so_error_size);
+    err = grpc_socket_factory_getsockopt(grpc_fd_wrapped_fd(fd), SOL_SOCKET,
+                                         SO_ERROR, &so_error, &so_error_size);
   } while (err < 0 && errno == EINTR);
   if (err < 0) {
     error = GRPC_OS_ERROR(errno, "getsockopt");
@@ -321,8 +321,8 @@ int64_t grpc_tcp_client_create_from_prepared_fd(
     grpc_endpoint** ep) {
   int err;
   do {
-    err = connect(fd, reinterpret_cast<const grpc_sockaddr*>(addr->addr),
-                  addr->len);
+    err = grpc_socket_factory_connect(
+        fd, reinterpret_cast<const grpc_sockaddr*>(addr->addr), addr->len);
   } while (err < 0 && errno == EINTR);
   int connect_errno = (err < 0) ? errno : 0;
 

@@ -36,11 +36,13 @@ int grpc_forbid_dualstack_sockets_for_testing = 0;
 int grpc_set_socket_dualstack(int fd) {
   if (!grpc_forbid_dualstack_sockets_for_testing) {
     const int off = 0;
-    return 0 == setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &off, sizeof(off));
+    return 0 == grpc_socket_factory_setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY,
+                                               &off, sizeof(off));
   } else {
     // Force an IPv6-only socket, for testing purposes.
     const int on = 1;
-    setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on));
+    grpc_socket_factory_setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &on,
+                                   sizeof(on));
     return 0;
   }
 }

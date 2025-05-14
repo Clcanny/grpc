@@ -187,8 +187,8 @@ void AsyncConnect::OnWritable(absl::Status status)
 
   do {
     so_error_size = sizeof(so_error);
-    err = getsockopt(fd->WrappedFd(), SOL_SOCKET, SO_ERROR, &so_error,
-                     &so_error_size);
+    err = grpc_socket_factory_getsockopt(fd->WrappedFd(), SOL_SOCKET, SO_ERROR,
+                                         &so_error, &so_error_size);
   } while (err < 0 && errno == EINTR);
   if (err < 0) {
     status = absl::FailedPreconditionError(
@@ -245,7 +245,7 @@ PosixEventEngine::CreateEndpointFromUnconnectedFdInternal(
   int err;
   int connect_errno;
   do {
-    err = connect(fd, addr.address(), addr.size());
+    err = grpc_socket_factory_connect(fd, addr.address(), addr.size());
   } while (err < 0 && errno == EINTR);
   connect_errno = (err < 0) ? errno : 0;
 

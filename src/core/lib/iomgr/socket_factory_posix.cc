@@ -29,67 +29,95 @@
 #include "src/core/lib/iomgr/socket_factory_posix.h"
 #include "src/core/util/useful.h"
 
-void grpc_socket_factory_init(grpc_socket_factory* factory,
-                              const grpc_socket_factory_vtable* vtable) {
-  factory->vtable = vtable;
-  gpr_ref_init(&factory->refcount, 1);
+grpc_socket_factory_vtable grpc_default_socket_factory_vtable = {
+    socket, getsockopt, setsockopt, ioctl,   fcntl, close,
+    read,   write,      sendmsg,    recvmsg, bind,  shutdown,
+};
+
+grpc_socket_factory_vtable* grpc_socket_factory_impl =
+    &grpc_default_socket_factory_vtable;
+
+int grpc_socket_factory_socket(int domain, int type, int protocol) {
+  return grpc_socket_factory_impl->socket(domain, type, protocol);
 }
 
-int grpc_socket_factory_socket(grpc_socket_factory* factory, int domain,
-                               int type, int protocol) {
-  return factory->vtable->socket(factory, domain, type, protocol);
+int grpc_socket_factory_getsockopt(int sockfd, int level, int optname,
+                                   void* optval, socklen_t* optlen) {
+  return grpc_socket_factory_impl->getsockopt(sockfd, level, optname, optval,
+                                              optlen);
 }
 
-int grpc_socket_factory_bind(grpc_socket_factory* factory, int sockfd,
-                             const grpc_resolved_address* addr) {
-  return factory->vtable->bind(factory, sockfd, addr);
+int grpc_socket_factory_setsockopt(int sockfd, int level, int optname,
+                                   const void* optval, socklen_t optlen) {
+  return grpc_socket_factory_impl->setsockopt(sockfd, level, optname, optval,
+                                              optlen);
 }
 
-int grpc_socket_factory_compare(grpc_socket_factory* a,
-                                grpc_socket_factory* b) {
-  int c = grpc_core::QsortCompare(a, b);
-  if (c != 0) {
-    grpc_socket_factory* sma = a;
-    grpc_socket_factory* smb = b;
-    c = grpc_core::QsortCompare(sma->vtable, smb->vtable);
-    if (c == 0) {
-      c = sma->vtable->compare(sma, smb);
-    }
-  }
-  return c;
+int grpc_socket_factory_ioctl(int fd, unsigned long op, ...) {
+  return grpc_socket_factory_impl->ioctl(fd, op, ...);
 }
 
-grpc_socket_factory* grpc_socket_factory_ref(grpc_socket_factory* factory) {
-  gpr_ref(&factory->refcount);
-  return factory;
+int grpc_socket_factory_fcntl(int fd, int op, ...) {
+  return grpc_socket_factory_impl->fcntl(fd, op, ...);
 }
 
-void grpc_socket_factory_unref(grpc_socket_factory* factory) {
-  if (gpr_unref(&factory->refcount)) {
-    factory->vtable->destroy(factory);
-  }
+int grpc_socket_factory_close(int fd) {
+  return grpc_socket_factory_impl->close(fd);
 }
 
-static void* socket_factory_arg_copy(void* p) {
-  return grpc_socket_factory_ref(static_cast<grpc_socket_factory*>(p));
+ssize_t grpc_socket_factory_read(int fd, void* buf, size_t count) {
+  return grpc_socket_factory_impl->read(fd, buf, count);
 }
 
-static void socket_factory_arg_destroy(void* p) {
-  grpc_socket_factory_unref(static_cast<grpc_socket_factory*>(p));
+ssize_t grpc_socket_factory_write(int fd, const void* buf, size_t count) {
+  return grpc_socket_factory_impl->write(fd, buf, count);
 }
 
-static int socket_factory_cmp(void* a, void* b) {
-  return grpc_socket_factory_compare(static_cast<grpc_socket_factory*>(a),
-                                     static_cast<grpc_socket_factory*>(b));
+ssize_t grpc_socket_factory_sendmsg(int fd, const struct msghdr* msg,
+                                    int flags) {
+  return grpc_socket_factory_impl->sendmsg(fd, msg, flags);
 }
 
-static const grpc_arg_pointer_vtable socket_factory_arg_vtable = {
-    socket_factory_arg_copy, socket_factory_arg_destroy, socket_factory_cmp};
+ssize_t grpc_socket_factory_recvmsg(int sockfd, struct msghdr* msg, int flags) {
+  return grpc_socket_factory_impl->recvmsg(sockfd, msg, flags);
+}
 
-grpc_arg grpc_socket_factory_to_arg(grpc_socket_factory* factory) {
-  return grpc_channel_arg_pointer_create(
-      const_cast<char*>(GRPC_ARG_SOCKET_FACTORY), factory,
-      &socket_factory_arg_vtable);
+int grpc_socket_factory_accept(int sockfd, struct sockaddr* addr,
+                               socklen_t* addrlen) {
+  return grpc_socket_factory_impl->accept(sockfd, addr, addrlen);
+}
+
+int grpc_socket_factory_accept4(int sockfd, struct sockaddr* addr,
+                                socklen_t* addrlen, int flags) {
+  return grpc_socket_factory_impl->accept4(sockfd, addr, addrlen, flags);
+}
+
+int grpc_socket_factory_listen(int sockfd, int backlog) {
+  return grpc_socket_factory_impl->listen(sockfd, backlog);
+}
+
+int grpc_socket_factory_bind(int sockfd, const grpc_resolved_address* addr) {
+  return grpc_socket_factory_impl->bind(sockfd, (struct sockaddr*)addr->addr,
+                                        addr->len);
+}
+
+int grpc_socket_factory_bind(int sockfd, const struct sockaddr* addr,
+                             socklen_t len) {
+  return grpc_socket_factory_impl->bind(sockfd, addr, len);
+}
+
+int grpc_socket_factory_connect(int sockfd, const struct sockaddr* addr,
+                                socklen_t addrlen) {
+  return grpc_socket_factory_impl->connect(sockfd, addr, addrlen);
+}
+
+int grpc_socket_factory_getpeername(int sockfd, struct sockaddr* addr,
+                                    socklen_t* addrlen) {
+  return grpc_socket_factory_impl->getpeername(sockfd, addr, addrlen);
+}
+
+int grpc_socket_factory_shutdown(int sockfd, int how) {
+  return grpc_socket_factory_impl->shutdown(sockfd, how);
 }
 
 #endif

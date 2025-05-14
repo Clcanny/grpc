@@ -104,7 +104,7 @@ static int epoll_create_and_cloexec() {
   int fd = epoll_create(MAX_EPOLL_EVENTS);
   if (fd < 0) {
     LOG(ERROR) << "epoll_create unavailable";
-  } else if (fcntl(fd, F_SETFD, FD_CLOEXEC) != 0) {
+  } else if (grpc_socket_factory_fcntl(fd, F_SETFD, FD_CLOEXEC) != 0) {
     LOG(ERROR) << "fcntl following epoll_create failed";
     return -1;
   }
@@ -128,7 +128,7 @@ static bool epoll_set_init() {
 // epoll_set_init() MUST be called before calling this.
 static void epoll_set_shutdown() {
   if (g_epoll_set.epfd >= 0) {
-    close(g_epoll_set.epfd);
+    grpc_socket_factory_close(g_epoll_set.epfd);
     g_epoll_set.epfd = -1;
   }
 }
@@ -393,7 +393,7 @@ static void fd_shutdown_internal(grpc_fd* fd, grpc_error_handle why,
   if (fd->read_closure->SetShutdown(why)) {
     if (!releasing_fd) {
       if (!fd->is_pre_allocated) {
-        shutdown(fd->fd, SHUT_RDWR);
+        grpc_socket_factory_shutdown(fd->fd, SHUT_RDWR);
       }
     } else {
       // we need a phony event for earlier linux versions.
@@ -435,7 +435,7 @@ static void fd_orphan(grpc_fd* fd, grpc_closure* on_done, int* release_fd,
     *release_fd = fd->fd;
   } else {
     if (!fd->is_pre_allocated) {
-      close(fd->fd);
+      grpc_socket_factory_close(fd->fd);
     }
   }
 
@@ -1262,7 +1262,7 @@ static void reset_event_manager_on_fork() {
   if (g_is_shutdown) return;
   gpr_mu_lock(&fork_fd_list_mu);
   while (fork_fd_list_head != nullptr) {
-    close(fork_fd_list_head->fd);
+    grpc_socket_factory_close(fork_fd_list_head->fd);
     fork_fd_list_head->fd = -1;
     fork_fd_list_head = fork_fd_list_head->fork_fd_list->next;
   }

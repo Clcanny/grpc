@@ -264,10 +264,4 @@ grpc_error_handle grpc_create_dualstack_socket(
     const grpc_resolved_address* addr, int type, int protocol,
     grpc_dualstack_mode* dsmode, int* newfd);
 
-// Same as grpc_create_dualstack_socket(), but use the given socket factory (if
-// non-null) to create the socket, rather than calling socket() directly.
-grpc_error_handle grpc_create_dualstack_socket_using_factory(
-    grpc_socket_factory* factory, const grpc_resolved_address* addr, int type,
-    int protocol, grpc_dualstack_mode* dsmode, int* newfd);
-
 #endif  // GRPC_SRC_CORE_LIB_IOMGR_SOCKET_UTILS_POSIX_H

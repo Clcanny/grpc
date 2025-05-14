@@ -460,7 +460,7 @@ static void close_fd_locked(grpc_fd* fd) {
   fd->closed = 1;
   if (!fd->released) {
     if (!fd->is_pre_allocated) {
-      close(fd->fd);
+      grpc_socket_factory_close(fd->fd);
     }
   }
   grpc_core::ExecCtx::Run(DEBUG_LOCATION, fd->on_done_closure,
@@ -577,7 +577,7 @@ static void fd_shutdown(grpc_fd* fd, grpc_error_handle why) {
     fd->shutdown_error = why;
     // signal read/write closed to OS so that future operations fail
     if (!fd->is_pre_allocated) {
-      shutdown(fd->fd, SHUT_RDWR);
+      grpc_socket_factory_shutdown(fd->fd, SHUT_RDWR);
     }
     set_ready_locked(fd, &fd->read_closure);
     set_ready_locked(fd, &fd->write_closure);
@@ -1362,13 +1362,15 @@ static void reset_event_manager_on_fork() {
   while (fork_fd_list_head != nullptr) {
     if (fork_fd_list_head->fd != nullptr) {
       if (!fork_fd_list_head->fd->closed) {
-        close(fork_fd_list_head->fd->fd);
+        grpc_socket_factory_close(fork_fd_list_head->fd->fd);
       }
       fork_fd_list_head->fd->fd = -1;
     } else {
-      close(fork_fd_list_head->cached_wakeup_fd->fd.read_fd);
+      grpc_socket_factory_close(
+          fork_fd_list_head->cached_wakeup_fd->fd.read_fd);
       fork_fd_list_head->cached_wakeup_fd->fd.read_fd = -1;
-      close(fork_fd_list_head->cached_wakeup_fd->fd.write_fd);
+      grpc_socket_factory_close(
+          fork_fd_list_head->cached_wakeup_fd->fd.write_fd);
       fork_fd_list_head->cached_wakeup_fd->fd.write_fd = -1;
     }
     fork_fd_list_head = fork_fd_list_head->next;

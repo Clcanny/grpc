@@ -69,19 +69,19 @@ absl::StatusOr<int> GetUnusedPort() {
   if (dsmode == PosixSocketWrapper::DSMode::DSMODE_IPV4) {
     wild = ResolvedAddressMakeWild4(0);
   }
-  if (bind(sock->Fd(), wild.address(), wild.size()) != 0) {
-    close(sock->Fd());
+  if (grpc_socket_factory_bind(sock->Fd(), wild.address(), wild.size()) != 0) {
+    grpc_socket_factory_close(sock->Fd());
     return absl::FailedPreconditionError(
         absl::StrCat("bind(GetUnusedPort): ", std::strerror(errno)));
   }
   socklen_t len = wild.size();
   if (getsockname(sock->Fd(), const_cast<sockaddr*>(wild.address()), &len) !=
       0) {
-    close(sock->Fd());
+    grpc_socket_factory_close(sock->Fd());
     return absl::FailedPreconditionError(
         absl::StrCat("getsockname(GetUnusedPort): ", std::strerror(errno)));
   }
-  close(sock->Fd());
+  grpc_socket_factory_close(sock->Fd());
   int port = ResolvedAddressGetPort(wild);
   if (port <= 0) {
     return absl::FailedPreconditionError("Bad port");
@@ -140,7 +140,7 @@ absl::Status PrepareSocket(const PosixTcpOptions& options,
   socket.port = 0;
   auto sock_cleanup = absl::MakeCleanup([&close_fd, fd]() -> void {
     if (close_fd && fd >= 0) {
-      close(fd);
+      grpc_socket_factory_close(fd);
     }
   });
   if (PosixSocketWrapper::IsSocketReusePortSupported() &&
@@ -172,7 +172,8 @@ absl::Status PrepareSocket(const PosixTcpOptions& options,
   GRPC_RETURN_IF_ERROR(socket.sock.ApplySocketMutatorInOptions(
       GRPC_FD_SERVER_LISTENER_USAGE, options));
 
-  if (bind(fd, socket.addr.address(), socket.addr.size()) < 0) {
+  if (grpc_socket_factory_bind(fd, socket.addr.address(), socket.addr.size()) <
+      0) {
     auto sockaddr_str = ResolvedAddressToString(socket.addr);
     if (!sockaddr_str.ok()) {
       LOG(ERROR) << "Could not convert sockaddr to string: "
@@ -185,7 +186,7 @@ absl::Status PrepareSocket(const PosixTcpOptions& options,
                      "': ", std::strerror(errno)));
   }
 
-  if (listen(fd, GetMaxAcceptQueueSize()) < 0) {
+  if (grpc_socket_factory_listen(fd, GetMaxAcceptQueueSize()) < 0) {
     return absl::FailedPreconditionError(
         absl::StrCat("Error in listen: ", std::strerror(errno)));
   }
@@ -269,8 +270,8 @@ absl::StatusOr<int> ListenerContainerAddAllLocalAddresses(
   }
 
   static const bool is_ipv4_available = [] {
-    const int fd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (fd >= 0) close(fd);
+    const int fd = grpc_socket_factory_socket(AF_INET, SOCK_DGRAM, 0);
+    if (fd >= 0) grpc_socket_factory_close(fd);
     return fd >= 0;
   }();
 
